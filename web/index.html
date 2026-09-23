@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>claude-masked — the claude binary that answers as Grok 4.7</title>
+  <meta name="description" content="Drop-in adapter: anything that shells out to claude is rewritten to Grok Build. Flagship aliases hit grok-4.7. MIT. By Eris Margeta.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://eris-margeta.github.io/claude-masked/">
+  <meta name="theme-color" content="#0b0d0c">
+  <meta name="author" content="Eris Margeta">
+  <meta property="og:locale" content="en_GB">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="claude-masked">
+  <meta property="og:title" content="claude-masked — claude on the wire, Grok 4.7 in the process">
+  <meta property="og:description" content="Tools still call claude. The process they get is Grok Build. Flagship maps to grok-4.7.">
+  <meta property="og:url" content="https://eris-margeta.github.io/claude-masked/">
+  <meta property="og:image" content="https://eris-margeta.github.io/claude-masked/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Night workstation with a dying coral prompt and a phosphor-green stream">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="claude-masked — claude on the wire, Grok 4.7 in the process">
+  <meta name="twitter:description" content="Drop-in claude CLI adapter. Grok 4.7 answers. MIT.">
+  <meta name="twitter:image" content="https://eris-margeta.github.io/claude-masked/assets/twitter-large.jpg">
+  <meta name="twitter:image:alt" content="Night workstation intercept still">
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="./assets/apple-touch.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://eris-margeta.github.io/claude-masked/#eris",
+        "name": "Eris Margeta",
+        "email": "eris.margeta@gmail.com",
+        "url": "https://github.com/Eris-Margeta"
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://tejl.hr/#studio",
+        "name": "TEJL Studio",
+        "url": "https://tejl.hr/",
+        "sameAs": ["https://tejl.com/"]
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://eris-margeta.github.io/claude-masked/#app",
+        "name": "claude-masked",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Linux",
+        "license": "https://opensource.org/licenses/MIT",
+        "author": {"@id": "https://eris-margeta.github.io/claude-masked/#eris"},
+        "creator": {"@id": "https://tejl.hr/#studio"},
+        "url": "https://eris-margeta.github.io/claude-masked/",
+        "description": "Drop-in Claude Code CLI adapter that execs Grok Build. Flagship model aliases map to grok-4.7."
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://eris-margeta.github.io/claude-masked/#website",
+        "url": "https://eris-margeta.github.io/claude-masked/",
+        "name": "claude-masked",
+        "inLanguage": "en",
+        "publisher": {"@id": "https://eris-margeta.github.io/claude-masked/#eris"}
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://eris-margeta.github.io/claude-masked/#webpage",
+        "url": "https://eris-margeta.github.io/claude-masked/",
+        "name": "claude-masked — the claude binary that answers as Grok 4.7",
+        "isPartOf": {"@id": "https://eris-margeta.github.io/claude-masked/#website"},
+        "about": {"@id": "https://eris-margeta.github.io/claude-masked/#app"}
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip" href="#why">Skip to content</a>
+  <header class="site">
+    <a class="wordmark" href="./">
+      <img src="./assets/mark.svg" width="28" height="28" alt="">
+      claude-masked
+    </a>
+    <nav aria-label="Primary">
+      <a href="./" aria-current="page">Overview</a>
+      <a href="./install/">Install</a>
+      <a href="https://github.com/Eris-Margeta/claude-masked">Source</a>
+    </nav>
+  </header>
+  <main>
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div>
+        <p class="kicker">Intercept · rewrite · exec</p>
+        <h1 id="hero-title">They still type <em>claude</em>.<br>The process is <em>Grok 4.7</em>.</h1>
+        <p class="lede">claude-masked is a drop-in CLI. Anything that shells out to the Claude Code harness — IDEs, agent UIs, scripts, CI — hits this binary instead. Flags, models, stream-json, auth status: translated. <code>grok</code> is what actually runs.</p>
+        <div class="actions">
+          <a class="btn" href="./install/">Install the mask</a>
+          <a class="btn ghost" id="share-x" href="https://twitter.com/intent/tweet?text=claude-masked%3A%20your%20tools%20still%20call%20%60claude%60.%20Grok%204.7%20answers.%20The%20Anthropic%20tax%20is%20optional.%20https%3A%2F%2Feris-margeta.github.io%2Fclaude-masked%2F">Share on X</a>
+        </div>
+      </div>
+      <figure class="hero-art">
+        <img
+          src="./assets/hero.jpg"
+          srcset="./assets/hero-640.jpg 640w, ./assets/hero-1280.jpg 1280w, ./assets/hero.jpg 1672w"
+          sizes="(max-width: 860px) 100vw, 42vw"
+          width="1672"
+          height="940"
+          alt="Night workstation: one monitor fading coral, the other a phosphor command stream"
+          fetchpriority="high">
+        <span class="scan" aria-hidden="true"></span>
+      </figure>
+    </section>
+
+    <div class="intercept" aria-label="Call intercept example">
+      <div class="pane">
+        <h2>Caller argv</h2>
+        <pre class="dead">$ claude --model fable -p "ship it"
+# spoofed version 2.1.266 (Claude Code)</pre>
+      </div>
+      <div class="pane">
+        <h2>What execs</h2>
+        <pre class="live">$ grok --model grok-4.7 -p "ship it"
+# grok-4.7-build · your xAI session</pre>
+      </div>
+    </div>
+
+    <section class="block why" id="why">
+      <h2>How this happened</h2>
+      <p>A lot of software still hard-wires the Claude Code CLI. Frontends spawn <code>claude</code>. Scripts probe <code>claude --version</code>. Login panels open Anthropic OAuth because that is the binary they found on disk.</p>
+      <p>We were already on Grok Build and Codex. The missing piece was compatibility: keep the <code>claude</code> surface so existing tooling does not notice, send the work to Grok. Flagship aliases (Fable and friends) map to <strong>grok-4.7</strong>. Everything smaller maps to grok-4.6.</p>
+      <p>The Anthropic login page is a compatibility bug, not a requirement. If a GUI still opens <code>claude.com/cai/oauth</code>, it found a leftover Homebrew binary. The mask takes that path too.</p>
+    </section>
+
+    <section class="block shame" id="compare" aria-labelledby="compare-title">
+      <h2 id="compare-title" style="grid-column:1/-1">The receipts</h2>
+      <article class="card bad">
+        <h3>Claude Code, unmasked</h3>
+        <p>Subscription theatre. A login page that does not care you already paid xAI. Model names as a product ladder. Plugins that rewrite your home directory. A binary that updates itself overnight.</p>
+      </article>
+      <article class="card good">
+        <h3>Grok 4.7, on the same socket</h3>
+        <p>One process. Your Grok session. Flagship when they asked for Fable. stream-json rewritten so the UI still paints thinking, tools, and result events. MIT, local, yours.</p>
+      </article>
+    </section>
+
+    <section class="block" id="map">
+      <h2>Model map</h2>
+      <table class="map">
+        <thead><tr><th>They asked for</th><th>They get</th></tr></thead>
+        <tbody>
+          <tr><td>fable, best, mythos, claude-fable-5*</td><td>grok-4.7</td></tr>
+          <tr><td>opus, sonnet, haiku, everything else</td><td>grok-4.6</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+  <footer class="site">
+    <div class="legal">
+      <p>MIT © 2026 Eris Margeta · <a href="mailto:eris.margeta@gmail.com">eris.margeta@gmail.com</a></p>
+      <p><a href="./privacy/">Privacy</a> · <a href="https://github.com/Eris-Margeta/claude-masked">GitHub</a></p>
+    </div>
+    <div class="studio">
+      <img src="./assets/tejl-logo.svg" width="68" height="24" alt="TEJL">
+      <p>Web studio contact: <a href="tel:+385998361079">+385 99 836 1079</a></p>
+      <p><a href="https://tejl.hr/" target="_blank" rel="noopener">tejl.hr</a>
+         · <a href="https://tejl.com/" target="_blank" rel="noopener">tejl.com</a></p>
+    </div>
+  </footer>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js");
+    }
+  </script>
+</body>
+</html>

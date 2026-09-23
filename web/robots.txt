@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://eris-margeta.github.io/claude-masked/sitemap.xml
