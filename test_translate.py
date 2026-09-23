@@ -10,7 +10,8 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from models import is_fable, map_model, map_tools_csv
+from models import is_fable, map_disallowed_csv, map_model, map_tools_csv
+from api_proxy import restamp_model, rewrite_body, sanitize_messages, sanitize_schema
 from stream_adapter import StreamTranslator, extract_user_text
 from auth import handle_auth_argv, status_payload
 import claude_masked as cm
@@ -36,6 +37,16 @@ class ModelMapTests(unittest.TestCase):
 
     def test_tools(self):
         self.assertEqual(map_tools_csv("Bash Edit Read"), "run_terminal_command,search_replace,read_file")
+
+    def test_disallowed_keeps_grok_shell(self):
+        self.assertEqual(
+            map_disallowed_csv("EnterPlanMode,ExitPlanMode,AskUserQuestion,Bash,PowerShell"),
+            "",
+        )
+
+    def test_fable_bracket_1m(self):
+        self.assertTrue(is_fable("claude-fable-5[1m]"))
+        self.assertEqual(map_model("claude-fable-5[1m]"), "grok-4.7")
 
 
 class ParseTests(unittest.TestCase):
@@ -193,6 +204,101 @@ class AuthTests(unittest.TestCase):
 
     def test_non_auth_returns_false(self):
         self.assertFalse(handle_auth_argv(["-p", "hello"]))
+
+    def test_usage_exits(self):
+        with self.assertRaises(SystemExit) as ctx:
+            with mock.patch("sys.stdout", new_callable=io.StringIO):
+                handle_auth_argv(["--dangerously-skip-permissions", "/usage"])
+        self.assertEqual(ctx.exception.code, 0)
+
+    def test_resume_parse(self):
+        req = cm.parse(["--resume", "49a8e8ad-5d04-4c14-8cba-2e58e45a6009", "-p", "next"])
+        self.assertEqual(req.resume, "49a8e8ad-5d04-4c14-8cba-2e58e45a6009")
+        self.assertEqual(req.prompt, "next")
+        emit, grok, is_resume = cm.plan_session(req)
+        self.assertTrue(is_resume)
+        self.assertEqual(emit, req.resume)
+
+    def test_mcp_config_captured(self):
+        req = cm.parse(["-p", "x", "--mcp-config", "/tmp/yume-mcp.json"])
+        self.assertEqual(req.mcp_config, "/tmp/yume-mcp.json")
+
+    def test_probe_slash(self):
+        self.assertTrue(cm._is_probe_slash("/context"))
+        self.assertTrue(cm._is_probe_slash("/usage"))
+        self.assertFalse(cm._is_probe_slash("keep going"))
+
+    def test_api_mask_detects_yume(self):
+        req = cm.parse(
+            ["-p", "hi", "--output-format", "stream-json", "--print", "--include-partial-messages"]
+        )
+        self.assertTrue(cm.is_api_mask(req, ["-p", "hi", "--output-format", "stream-json", "--print"]))
+
+    def test_rewrite_body_fable(self):
+        out = json.loads(rewrite_body(b'{"model":"claude-fable-5[1m]","max_tokens":8}'))
+        self.assertEqual(out["model"], "grok-4.7")
+
+    def test_sanitize_required_null(self):
+        data = sanitize_schema(
+            {
+                "tools": [
+                    {
+                        "name": "Read",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {"path": {"type": "string"}},
+                            "required": None,
+                        },
+                    }
+                ]
+            }
+        )
+        self.assertEqual(data["tools"][0]["input_schema"]["required"], [])
+
+    def test_restamp_model(self):
+        buf = b'{"type":"message_start","message":{"model":"grok-4.6"}}'
+        out = restamp_model(buf, "claude-haiku-4-5")
+        self.assertIn(b"claude-haiku-4-5", out)
+        self.assertNotIn(b"grok-4.6", out)
+
+    def test_sanitize_system_role(self):
+        data = sanitize_messages(
+            {
+                "messages": [
+                    {"role": "system", "content": "be brief"},
+                    {"role": "user", "content": "hi"},
+                ]
+            }
+        )
+        roles = [m["role"] for m in data["messages"]]
+        self.assertEqual(roles, ["user"])
+        self.assertIn("be brief", data["system"])
+
+    def test_sanitize_tool_role(self):
+        data = sanitize_messages(
+            {
+                "messages": [
+                    {"role": "user", "content": "run it"},
+                    {
+                        "role": "tool",
+                        "tool_use_id": "t1",
+                        "content": "ok",
+                    },
+                ]
+            }
+        )
+        self.assertEqual(data["messages"][-1]["role"], "user")
+        types = []
+        for msg in data["messages"]:
+            c = msg["content"]
+            if isinstance(c, list):
+                types.extend(b.get("type") for b in c if isinstance(b, dict))
+        self.assertIn("tool_result", types)
+
+    def test_yume_rules_rewrite(self):
+        raw = "NEVER use the built-in Bash. always use the RunBash tool (mcp__yume__RunBash)."
+        out = cm.rewrite_yume_rules(raw)
+        self.assertIn("run_terminal_command", out)
 
 
 if __name__ == "__main__":

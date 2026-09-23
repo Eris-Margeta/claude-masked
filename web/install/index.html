@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Install claude-masked</title>
-  <meta name="description" content="Install the claude CLI mask so Grok Build handles Claude Code harness calls.">
+  <meta name="description" content="Install the claude-masked adapter so Claude Code CLI calls can use Grok 4.7.">
   <link rel="canonical" href="https://claude-masked.vercel.app/install/">
-  <meta name="theme-color" content="#0b0d0c">
+  <meta name="theme-color" content="#0c0c0b">
+  <meta name="author" content="Eris Margeta Kurdali">
   <meta property="og:title" content="Install claude-masked">
   <meta property="og:image" content="https://claude-masked.vercel.app/assets/og.jpg">
   <meta name="twitter:card" content="summary">
@@ -24,19 +25,17 @@
       <a href="https://github.com/Eris-Margeta/claude-masked">Source</a>
     </nav>
   </header>
-  <main id="main" class="block" style="padding-top:2.5rem">
+  <main id="main" class="block" style="padding-top:2.6rem">
     <h1>Install</h1>
-    <p class="lede">Requires a working <code>grok</code> on PATH (Grok Build). Python 3.10+.</p>
+    <p>Requires Python 3.10+ and a working Grok Build login (<code>grok</code> on PATH, or <code>~/.grok/auth.json</code>).</p>
     <pre>git clone https://github.com/Eris-Margeta/claude-masked.git
 cd claude-masked
 ./install.sh
-# keep ~/.local/bin first on PATH
 export PATH="$HOME/.local/bin:$PATH"
-claude --version
-# 2.1.266 (Claude Code)
-# via claude-masked → grok</pre>
-    <p>Existing Claude Code binaries are renamed to <code>claude-anthropic</code> (and Homebrew to <code>claude-anthropic-homebrew</code>). <code>brew upgrade</code> of Claude Code will restore the real binary; re-run <code>./install.sh</code>.</p>
-    <p><a class="btn" href="https://github.com/Eris-Margeta/claude-masked">Open the repository</a></p>
+claude --version</pre>
+    <p>The installer places <code>claude</code> on <code>~/.local/bin</code> and, when present, over Homebrew’s <code>/opt/homebrew/bin/claude</code>. Previous binaries are saved as <code>claude-anthropic</code> / <code>claude-anthropic-homebrew</code>.</p>
+    <p>After a <code>brew upgrade</code> of Claude Code, run <code>./install.sh</code> again. Uninstall with <code>./uninstall.sh</code>.</p>
+    <p><a class="btn" href="https://github.com/Eris-Margeta/claude-masked">Repository</a></p>
   </main>
   <footer class="site">
     <div class="legal">MIT © 2026 Eris Margeta</div>

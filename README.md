@@ -1,21 +1,17 @@
 # claude-masked
 
 [![CI](https://github.com/Eris-Margeta/claude-masked/actions/workflows/ci.yml/badge.svg)](https://github.com/Eris-Margeta/claude-masked/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-8cff6a?labelColor=0b0d0c)](LICENSE)
-[![Grok 4.7](https://img.shields.io/badge/flagship-grok--4.7-8cff6a?labelColor=0b0d0c)](https://claude-masked.vercel.app/)
-[![Site](https://img.shields.io/badge/site-claude--masked.vercel.app-c44a2a?labelColor=0b0d0c)](https://claude-masked.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-c5b48a?labelColor=0c0c0b)](LICENSE)
+[![Grok 4.7](https://img.shields.io/badge/flagship-grok--4.7-c5b48a?labelColor=0c0c0b)](https://claude-masked.vercel.app/)
+[![Site](https://img.shields.io/badge/site-claude--masked.vercel.app-8d8b84?labelColor=0c0c0b)](https://claude-masked.vercel.app/)
 
-**Claude Code harness in name. Grok Build in fact.**
-
-Anything that shells out to `claude` is translated and `exec`’d as `grok`. No Anthropic session. Flagship aliases (Fable and the rest of the ceiling) map to **grok-4.7**. Lesser model names map to grok-4.6.
+Claude Code CLI contract. Grok 4.7 / 4.6 inference.
 
 Site: [claude-masked.vercel.app](https://claude-masked.vercel.app/)
 
-## Why
+## Install
 
-A lot of local tooling still assumes the Claude Code CLI: version probes, `stream-json` frontends, `claude auth login`. We were already on Grok. This adapter keeps the `claude` surface so those tools keep working, and sends the work to xAI.
-
-## Quick start
+Requires Python 3.10+ and [Grok Build](https://grok.com) (`grok` on PATH, session in `~/.grok/auth.json`).
 
 ```bash
 git clone https://github.com/Eris-Margeta/claude-masked.git
@@ -23,35 +19,38 @@ cd claude-masked
 ./install.sh
 export PATH="$HOME/.local/bin:$PATH"
 claude --version
-# 2.1.266 (Claude Code)
-# via claude-masked → grok
 ```
 
-Requires [Grok Build](https://grok.com) (`grok` on PATH) and Python 3.10+.
+`./uninstall.sh` restores the previous `claude` binaries.
 
-## Map
+## Modes
 
-| Caller thinks | What runs |
+| Launch shape | Behaviour |
 |---|---|
-| `claude` | `grok` |
-| `claude -p "fix the tests"` | `grok -p "fix the tests"` |
-| `--model fable` / `claude-fable-5*` | `--model grok-4.7` |
-| `--model sonnet` / opus / haiku | `--model grok-4.6` |
-| `--output-format stream-json` | Grok `streaming-json` rewritten to Claude Code NDJSON |
-| `claude auth status` | logged in when `~/.grok/auth.json` or `XAI_API_KEY` is valid |
-| `claude auth login` | `grok login` |
+| `stream-json --print`, MCP config, desktop harnesses | **API mask** — real Claude Code binary; localhost proxy `127.0.0.1:8317` maps models and forwards `/v1/messages` to `api.x.ai`. Sessions and `--resume` stay Claude’s. |
+| `claude -p`, interactive PATH | **Harness mask** — argv translated, `exec grok`. |
+| `claude auth login` / `auth status` | Grok login / Grok session. |
+
+Force with `CLAUDE_MASKED_MODE=api` or `harness`.
+
+## Model map
+
+| Requested | Routed to |
+|---|---|
+| fable, best, mythos, `claude-fable-5*` | grok-4.7 |
+| opus, sonnet, haiku, other Claude ids | grok-4.6 |
 
 ## Environment
 
 | Variable | Meaning |
 |---|---|
 | `CLAUDE_MASKED_GROK` | Path to the grok binary |
+| `CLAUDE_MASKED_REAL_CLAUDE` | Path to the real Claude Code binary |
 | `CLAUDE_MASKED_FLAGSHIP` | Default `grok-4.7` |
 | `CLAUDE_MASKED_STANDARD` | Default `grok-4.6` |
-| `CLAUDE_MASKED_FORCE_MODEL` | Ignore caller `--model` |
-| `CLAUDE_MASKED_DEBUG=1` | Print translated argv |
-
-This masks the **CLI harness**. It does not proxy `api.anthropic.com`.
+| `CLAUDE_MASKED_FORCE_MODEL` | Ignore caller `--model` (harness mask) |
+| `CLAUDE_MASKED_DEBUG=1` | Log translated argv |
+| `CLAUDE_MASKED_MODE` | `api` or `harness` |
 
 ## License
 

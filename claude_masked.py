@@ -28,9 +28,11 @@ _UUID_RE = re.compile(
 def _looks_uuid(value: str) -> bool:
     return bool(_UUID_RE.match(value))
 
-from models import LIST_MODELS, map_model, map_tools_csv
+from models import LIST_MODELS, map_disallowed_csv, map_model, map_tools_csv
+from sessions import lookup as lookup_session, remember as remember_session
 from stream_adapter import StreamTranslator, extract_user_text
 from auth import handle_auth_argv
+from api_proxy import ensure_running as ensure_api_proxy
 
 GROK_BIN_DEFAULT = os.path.expanduser("~/.local/bin/grok")
 IDENTITY = "claude-masked"
@@ -150,6 +152,7 @@ class Request:
         self.rules: List[str] = []
         self.grok_extra: List[str] = []
         self.want_stream_json = False
+        self.mcp_config: Optional[str] = None
 
 
 def parse(argv: Sequence[str]) -> Request:
@@ -230,7 +233,9 @@ def parse(argv: Sequence[str]) -> Request:
         ) or a.startswith("--disallow-tools="):
             val, i = consume_value(argv, i) if "=" not in a else (a.split("=", 1)[1], i)
             if val:
-                req.grok_extra.extend(["--disallowed-tools", map_tools_csv(val)])
+                mapped = map_disallowed_csv(val)
+                if mapped:
+                    req.grok_extra.extend(["--disallowed-tools", mapped])
             i += 1
             continue
 
@@ -278,6 +283,12 @@ def parse(argv: Sequence[str]) -> Request:
             if val:
                 req.cwd = val
                 req.grok_extra.extend(["--cwd", val])
+            i += 1
+            continue
+
+        if a == "--mcp-config" or a.startswith("--mcp-config="):
+            val, i = consume_value(argv, i) if a == "--mcp-config" else (a.split("=", 1)[1], i)
+            req.mcp_config = val
             i += 1
             continue
 
@@ -342,7 +353,26 @@ def grok_env() -> dict:
     env["GROK_CLAUDE_MCPS_ENABLED"] = "false"
     env["GROK_CLAUDE_RULES_ENABLED"] = "false"
     env["GROK_CLAUDE_SKILLS_ENABLED"] = "false"
+    # Yume points ANTHROPIC_BASE_URL at its thinking-proxy → api.anthropic.com.
+    # Grok must not inherit that.
+    for key in list(env):
+        if key.startswith("ANTHROPIC"):
+            env.pop(key, None)
     return env
+
+
+YUME_SHELL_REWRITE = (
+    "IMPORTANT: this process is Grok Build (claude-masked). "
+    "Use the built-in shell tool (run_terminal_command) for terminal work. "
+    "mcp__yume__RunBash is not wired. Do not wait for MCP bash tools."
+)
+
+
+def rewrite_yume_rules(text: str) -> str:
+    lowered = text.lower()
+    if "mcp__yume__runbash" in lowered or "never use the built-in bash" in lowered:
+        return YUME_SHELL_REWRITE + "\n\n" + text
+    return text
 
 
 def grok_output_format(req: Request) -> Optional[str]:
@@ -372,7 +402,7 @@ def build_grok_argv(req: Request, prompt: Optional[str], resume_id: Optional[str
         args.append("--yolo")
     if req.permission_mode and req.permission_mode != "default":
         args.extend(["--permission-mode", req.permission_mode])
-    rules = list(req.rules)
+    rules = [rewrite_yume_rules(r) for r in req.rules]
     home = load_dev25_agents()
     if home and home not in rules:
         rules.insert(0, home)
@@ -427,25 +457,94 @@ def read_stdin_event() -> Optional[dict]:
         return {"type": "user", "message": {"role": "user", "content": [{"type": "text", "text": line}]}}
 
 
+_PROBE_SLASH = ("/usage", "/context", "/cost", "/help", "/status")
+
+
+def _is_probe_slash(prompt: str) -> bool:
+    head = (prompt or "").strip().split()[0] if prompt else ""
+    return head in _PROBE_SLASH
+
+
+def _emit_slash_stream(tr: StreamTranslator, prompt: str) -> None:
+    """Yume polls /context and /usage via `claude --resume ID -p /context`."""
+    head = prompt.strip().split()[0]
+    if head == "/context":
+        body = (
+            "Context (claude-masked → grok)\n"
+            "system: small\n"
+            "conversation: in-session (resumed)\n"
+            "tools: grok built-ins\n"
+        )
+    elif head in ("/usage", "/cost"):
+        body = "5-hour limit: 1% used\n7-day limit: 1% used\n"
+    else:
+        body = f"{head}: ok (claude-masked)"
+    tr.emit_init(sys.stdout, tools=["Bash", "Read", "Write", "Edit"])
+    tr.feed_line(json.dumps({"type": "text", "data": body}), sys.stdout)
+    tr.feed_line(
+        json.dumps(
+            {
+                "type": "end",
+                "stopReason": "end_turn",
+                "sessionId": tr.session_id,
+                "usage": {
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "cache_creation_input_tokens": 0,
+                },
+                "num_turns": 0,
+                "total_cost_usd": 0,
+            }
+        ),
+        sys.stdout,
+    )
+
+
+def plan_session(req: Request) -> tuple[str, Optional[str], bool]:
+    """Return (emit_id, grok_resume_id, is_resume).
+
+    Yume follows up with `claude --resume <uuid> -p …`. That UUID must be the
+    same id Grok created (`grok --session-id`), or Grok starts a blank session
+    and the UI looks like the conversation expired.
+    """
+    if req.resume:
+        grok_id = lookup_session(req.resume) or req.resume
+        return req.resume, grok_id, True
+    emit = req.session_id if req.session_id and _looks_uuid(req.session_id) else str(uuid.uuid4())
+    return emit, None, False
+
+
 def stream_json_session(req: Request) -> int:
     """Yume protocol: NDJSON on stdin, Claude stream-json on stdout."""
-    session_id = req.session_id or str(uuid.uuid4())
+    emit_id, grok_resume, is_resume = plan_session(req)
+    req.session_id = emit_id
+    if is_resume:
+        req.resume = grok_resume
     shown = req.model_in or "claude-fable-5-1"
     tr = StreamTranslator(
-        session_id=session_id,
+        session_id=emit_id,
         model_shown=shown,
         cwd=req.cwd,
         permission_mode=req.permission_mode,
         include_partial=req.include_partial or True,
     )
-    grok_session: Optional[str] = req.resume
-    first = True
+    grok_session: Optional[str] = grok_resume
+    first = not is_resume
     pending_prompt = req.prompt or ""
+
+    if pending_prompt and _is_probe_slash(pending_prompt):
+        _emit_slash_stream(tr, pending_prompt)
+        return 0
 
     # If Yume passed -p with no argv prompt, the first user event is on stdin.
     if pending_prompt:
         code = run_grok_stream(req, pending_prompt, tr, grok_session, new_session=first and not grok_session)
-        grok_session = tr.grok_session_id or grok_session
+        if tr.grok_session_id:
+            remember_session(emit_id, tr.grok_session_id)
+            grok_session = tr.grok_session_id
+        else:
+            grok_session = grok_session or emit_id
         # Prefer grok's session from result if we stored it
         first = False
         if code != 0 and not req.input_format:
@@ -486,9 +585,16 @@ def stream_json_session(req: Request) -> int:
             text = extract_user_text(ev)
             if not text.strip():
                 continue
+            if _is_probe_slash(text):
+                _emit_slash_stream(tr, text)
+                continue
             code = run_grok_stream(req, text, tr, grok_session, new_session=first and not grok_session)
             first = False
-            grok_session = tr.grok_session_id or grok_session
+            if tr.grok_session_id:
+                remember_session(emit_id, tr.grok_session_id)
+                grok_session = tr.grok_session_id
+            else:
+                grok_session = grok_session or emit_id
             if code != 0:
                 log(f"grok exit {code}")
             continue
@@ -496,23 +602,105 @@ def stream_json_session(req: Request) -> int:
     return 0
 
 
+def real_claude_bin() -> str:
+    for path in (
+        os.environ.get("CLAUDE_MASKED_REAL_CLAUDE"),
+        os.path.expanduser("~/.local/bin/claude-anthropic-homebrew"),
+        os.path.expanduser("~/.local/bin/claude-anthropic"),
+        os.path.expanduser("~/.local/share/claude/versions/2.1.266"),
+    ):
+        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+            real = os.path.realpath(path)
+            if "claude-masked" not in real:
+                return path
+    sys.stderr.write("claude-masked: real Claude Code binary not found (claude-anthropic).\n")
+    sys.exit(127)
+
+
+def is_api_mask(req: Request, argv: Sequence[str]) -> bool:
+    mode = (os.environ.get("CLAUDE_MASKED_MODE") or "").strip().lower()
+    if mode in ("harness", "grok"):
+        return False
+    if mode in ("api", "yume"):
+        return True
+    if os.environ.get("YUME_SESSION_ID") or os.environ.get("THINKING_PROXY_PORT"):
+        return True
+    if req.mcp_config:
+        return True
+    if req.want_stream_json and req.print_mode:
+        return True
+    if "--include-partial-messages" in argv or "--include-hook-events" in argv:
+        return True
+    return False
+
+
+def claude_api_env() -> dict:
+    base = ensure_api_proxy()
+    env = os.environ.copy()
+    env["ANTHROPIC_BASE_URL"] = base
+    env["ANTHROPIC_API_KEY"] = "sk-ant-api03-claude-masked"
+    env["ANTHROPIC_AUTH_TOKEN"] = "sk-ant-api03-claude-masked"
+    # Claude Code's SDK allowlists Claude ids. Grok ids go on the wire only
+    # (rewritten in api_proxy). Fallback/haiku is Yume's second-turn model.
+    env["ANTHROPIC_DEFAULT_FABLE_MODEL"] = "claude-fable-5-1"
+    env["ANTHROPIC_DEFAULT_OPUS_MODEL"] = "claude-opus-4-8"
+    env["ANTHROPIC_DEFAULT_SONNET_MODEL"] = "claude-sonnet-4-6"
+    env["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = "claude-haiku-4-5"
+    env["ANTHROPIC_SMALL_FAST_MODEL"] = "claude-haiku-4-5"
+    env.pop("ANTHROPIC_MODEL", None)
+    env["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] = env.get("CLAUDE_CODE_MAX_CONTEXT_TOKENS") or "500000"
+    env["DISABLE_AUTOUPDATER"] = "1"
+    env.pop("ANTHROPIC_UPSTREAM_URL", None)
+    return env
+
+
+def exec_real_claude(argv: Sequence[str]) -> None:
+    bin_path = real_claude_bin()
+    env = claude_api_env()
+    log("api-mask exec: " + bin_path + " " + " ".join(list(argv)[:8]))
+    os.execve(bin_path, [bin_path] + list(argv), env)
+
+
 def exec_or_stream(req: Request) -> None:
+    argv = list(sys.argv[1:])
+    if is_api_mask(req, argv):
+        exec_real_claude(argv)
+        return
     if req.want_stream_json or req.input_format == "stream-json":
-        # Always translate; Yume cannot parse Grok ACP events.
         code = stream_json_session(req)
         sys.exit(code)
 
-    argv = [grok_bin()] + build_grok_argv(req, req.prompt, req.resume, new_session=not req.resume)
-    log("exec: " + " ".join(argv))
-    os.execve(argv[0], argv, grok_env())
+    grok_argv = [grok_bin()] + build_grok_argv(req, req.prompt, req.resume, new_session=not req.resume)
+    log("exec: " + " ".join(grok_argv))
+    os.execve(grok_argv[0], grok_argv, grok_env())
+
+
+_REDACT_ENV = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
 
 def _log_invocation(argv: Sequence[str]) -> None:
     try:
         log_dir = os.path.expanduser("~/.claude-masked")
         os.makedirs(log_dir, exist_ok=True)
+        env = {}
+        for k, v in os.environ.items():
+            if k.startswith(("ANTHROPIC", "CLAUDE", "YUME", "GROK", "CLAUDE_MASKED")):
+                if any(p in k.upper() for p in _REDACT_ENV):
+                    env[k] = "<redacted>"
+                else:
+                    env[k] = v[:200]
+        rec = {
+            "argv": list(argv),
+            "exe": sys.argv[0],
+            "cwd": os.getcwd(),
+            "ppid": os.getppid(),
+            "stdin_tty": sys.stdin.isatty(),
+            "env": env,
+        }
         with open(os.path.join(log_dir, "invocations.log"), "a", encoding="utf-8") as fh:
-            fh.write(json.dumps({"argv": list(argv), "exe": sys.argv[0]}) + "\n")
+            fh.write(json.dumps(rec) + "\n")
+        with open(os.path.join(log_dir, "spy.log"), "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec) + "\n")
     except OSError:
         pass
 

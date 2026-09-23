@@ -90,10 +90,32 @@ def map_model(name: Optional[str]) -> str:
     return GROK_STANDARD
 
 
+# Yume disables Claude Bash in favor of mcp__yume__RunBash. Grok has no that MCP
+# unless configured; stripping Grok's shell would freeze agent loops.
+KEEP_GROK_SHELL = {
+    "Bash",
+    "PowerShell",
+    "AskUserQuestion",
+    "EnterPlanMode",
+    "ExitPlanMode",
+}
+
+
 def map_tools_csv(value: str) -> str:
     parts = [p.strip() for p in value.replace(" ", ",").split(",") if p.strip()]
     mapped = [TOOL_TO_GROK.get(p, TOOL_TO_GROK.get(p.split("(")[0], p)) for p in parts]
     return ",".join(mapped)
+
+
+def map_disallowed_csv(value: str) -> str:
+    parts = [p.strip() for p in value.replace(" ", ",").split(",") if p.strip()]
+    out = []
+    for p in parts:
+        base = p.split("(")[0]
+        if base in KEEP_GROK_SHELL:
+            continue
+        out.append(TOOL_TO_GROK.get(p, TOOL_TO_GROK.get(base, p)))
+    return ",".join(out)
 
 
 def claude_tool_name(grok_name: str) -> str:

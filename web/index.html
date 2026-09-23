@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>claude-masked — the claude binary that answers as Grok 4.7</title>
-  <meta name="description" content="Drop-in adapter: anything that shells out to claude is rewritten to Grok Build. Flagship aliases hit grok-4.7. MIT. By Eris Margeta.">
+  <title>claude-masked — Claude Code surface, Grok Build models</title>
+  <meta name="description" content="A local adapter that keeps the Claude Code CLI contract and routes model calls to Grok 4.7 and Grok 4.6. MIT. Maintained by TEJL Studio.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://claude-masked.vercel.app/">
-  <meta name="theme-color" content="#0b0d0c">
-  <meta name="author" content="Eris Margeta">
+  <meta name="theme-color" content="#0c0c0b">
+  <meta name="author" content="Eris Margeta Kurdali">
   <meta property="og:locale" content="en_GB">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="claude-masked">
-  <meta property="og:title" content="claude-masked — claude on the wire, Grok 4.7 in the process">
-  <meta property="og:description" content="Tools still call claude. The process they get is Grok Build. Flagship maps to grok-4.7.">
+  <meta property="og:title" content="claude-masked — Claude Code surface, Grok Build models">
+  <meta property="og:description" content="Keep the Claude Code CLI. Route inference to Grok 4.7 / 4.6 on your existing xAI session.">
   <meta property="og:url" content="https://claude-masked.vercel.app/">
   <meta property="og:image" content="https://claude-masked.vercel.app/assets/og.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Night workstation with a dying coral prompt and a phosphor-green stream">
+  <meta property="og:image:alt" content="Dark workstation still used as the claude-masked social image">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="claude-masked — claude on the wire, Grok 4.7 in the process">
-  <meta name="twitter:description" content="Drop-in claude CLI adapter. Grok 4.7 answers. MIT.">
+  <meta name="twitter:title" content="claude-masked — Claude Code surface, Grok Build models">
+  <meta name="twitter:description" content="Local Claude Code adapter for Grok 4.7. MIT.">
   <meta name="twitter:image" content="https://claude-masked.vercel.app/assets/twitter-large.jpg">
-  <meta name="twitter:image:alt" content="Night workstation intercept still">
+  <meta name="twitter:image:alt" content="Dark workstation still used as the claude-masked social image">
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="./assets/favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="./assets/apple-touch.png">
@@ -35,8 +35,8 @@
     "@graph": [
       {
         "@type": "Person",
-        "@id": "https://claude-masked.vercel.app/#eris",
-        "name": "Eris Margeta",
+        "@id": "https://claude-masked.vercel.app/#author",
+        "name": "Eris Margeta Kurdali",
         "email": "eris.margeta@gmail.com",
         "url": "https://github.com/Eris-Margeta"
       },
@@ -54,10 +54,11 @@
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "macOS, Linux",
         "license": "https://opensource.org/licenses/MIT",
-        "author": {"@id": "https://claude-masked.vercel.app/#eris"},
+        "author": {"@id": "https://claude-masked.vercel.app/#author"},
         "creator": {"@id": "https://tejl.hr/#studio"},
         "url": "https://claude-masked.vercel.app/",
-        "description": "Drop-in Claude Code CLI adapter that execs Grok Build. Flagship model aliases map to grok-4.7."
+        "codeRepository": "https://github.com/Eris-Margeta/claude-masked",
+        "description": "Local adapter that preserves the Claude Code CLI contract and routes model inference to Grok 4.7 and Grok 4.6."
       },
       {
         "@type": "WebSite",
@@ -65,22 +66,24 @@
         "url": "https://claude-masked.vercel.app/",
         "name": "claude-masked",
         "inLanguage": "en",
-        "publisher": {"@id": "https://claude-masked.vercel.app/#eris"}
+        "publisher": {"@id": "https://claude-masked.vercel.app/#author"},
+        "creator": {"@id": "https://tejl.hr/#studio"}
       },
       {
         "@type": "WebPage",
         "@id": "https://claude-masked.vercel.app/#webpage",
         "url": "https://claude-masked.vercel.app/",
-        "name": "claude-masked — the claude binary that answers as Grok 4.7",
+        "name": "claude-masked — Claude Code surface, Grok Build models",
         "isPartOf": {"@id": "https://claude-masked.vercel.app/#website"},
-        "about": {"@id": "https://claude-masked.vercel.app/#app"}
+        "about": {"@id": "https://claude-masked.vercel.app/#app"},
+        "author": {"@id": "https://claude-masked.vercel.app/#author"}
       }
     ]
   }
   </script>
 </head>
 <body>
-  <a class="skip" href="#why">Skip to content</a>
+  <a class="skip" href="#overview">Skip to content</a>
   <header class="site">
     <a class="wordmark" href="./">
       <img src="./assets/mark.svg" width="28" height="28" alt="">
@@ -93,68 +96,56 @@
     </nav>
   </header>
   <main>
-    <section class="hero" id="top" aria-labelledby="hero-title">
+    <section class="hero" aria-labelledby="hero-title">
       <div>
-        <p class="kicker">Intercept · rewrite · exec</p>
-        <h1 id="hero-title">They still type <em>claude</em>.<br>The process is <em>Grok 4.7</em>.</h1>
-        <p class="lede">claude-masked is a drop-in CLI. Anything that shells out to the Claude Code harness — IDEs, agent UIs, scripts, CI — hits this binary instead. Flags, models, stream-json, auth status: translated. <code>grok</code> is what actually runs.</p>
+        <p class="kicker">Local adapter · MIT</p>
+        <h1 id="hero-title">The Claude Code interface. Grok 4.7 on the wire.</h1>
+        <p class="lede">claude-masked is a drop-in <code>claude</code> binary. Existing tools keep their CLI contract. Flagship aliases resolve to Grok 4.7; everything else to Grok 4.6. Desktop frontends that speak Claude <code>stream-json</code> keep native sessions via a local Anthropic-compatible proxy to <code>api.x.ai</code>.</p>
         <div class="actions">
-          <a class="btn" href="./install/">Install the mask</a>
-          <a class="btn ghost" id="share-x" href="https://twitter.com/intent/tweet?text=claude-masked%3A%20your%20tools%20still%20call%20%60claude%60.%20Grok%204.7%20answers.%20The%20Anthropic%20tax%20is%20optional.%20https%3A%2F%2Fclaude-masked.vercel.app%2F">Share on X</a>
+          <a class="btn" href="./install/">Install</a>
+          <a class="btn ghost" href="https://github.com/Eris-Margeta/claude-masked">GitHub</a>
+          <a class="btn ghost" id="share-x" href="https://twitter.com/intent/tweet?text=claude-masked%20keeps%20the%20Claude%20Code%20CLI%20and%20routes%20inference%20to%20Grok%204.7.%20https%3A%2F%2Fclaude-masked.vercel.app%2F">Share on X</a>
         </div>
       </div>
       <figure class="hero-art">
         <img
           src="./assets/hero.jpg"
           srcset="./assets/hero-640.jpg 640w, ./assets/hero-1280.jpg 1280w, ./assets/hero.jpg 1672w"
-          sizes="(max-width: 860px) 100vw, 42vw"
+          sizes="(max-width: 860px) 100vw, 40vw"
           width="1672"
           height="940"
-          alt="Night workstation: one monitor fading coral, the other a phosphor command stream"
+          alt="Night workstation photograph used as the product still"
           fetchpriority="high">
         <span class="scan" aria-hidden="true"></span>
       </figure>
     </section>
 
-    <div class="intercept" aria-label="Call intercept example">
-      <div class="pane">
-        <h2>Caller argv</h2>
-        <pre class="dead">$ claude --model fable -p "ship it"
-# spoofed version 2.1.266 (Claude Code)</pre>
-      </div>
-      <div class="pane">
-        <h2>What execs</h2>
-        <pre class="live">$ grok --model grok-4.7 -p "ship it"
-# grok-4.7-build · your xAI session</pre>
-      </div>
-    </div>
-
-    <section class="block why" id="why">
-      <h2>How this happened</h2>
-      <p>A lot of software still hard-wires the Claude Code CLI. Frontends spawn <code>claude</code>. Scripts probe <code>claude --version</code>. Login panels open Anthropic OAuth because that is the binary they found on disk.</p>
-      <p>We were already on Grok Build and Codex. The missing piece was compatibility: keep the <code>claude</code> surface so existing tooling does not notice, send the work to Grok. Flagship aliases (Fable and friends) map to <strong>grok-4.7</strong>. Everything smaller maps to grok-4.6.</p>
-      <p>The Anthropic login page is a compatibility bug, not a requirement. If a GUI still opens <code>claude.com/cai/oauth</code>, it found a leftover Homebrew binary. The mask takes that path too.</p>
+    <section class="block" id="overview">
+      <h2>Why it exists</h2>
+      <p>A large amount of local tooling still shells out to the Claude Code CLI: version probes, <code>stream-json</code> GUIs, <code>--resume</code>, MCP configs. Switching the model should not require rewriting those clients. This project keeps the surface and changes the inference destination to Grok Build / xAI, using the session already stored in <code>~/.grok/auth.json</code>.</p>
     </section>
 
-    <section class="block shame" id="compare" aria-labelledby="compare-title">
-      <h2 id="compare-title" style="grid-column:1/-1">The receipts</h2>
-      <article class="card bad">
-        <h3>Claude Code, unmasked</h3>
-        <p>Subscription theatre. A login page that does not care you already paid xAI. Model names as a product ladder. Plugins that rewrite your home directory. A binary that updates itself overnight.</p>
-      </article>
-      <article class="card good">
-        <h3>Grok 4.7, on the same socket</h3>
-        <p>One process. Your Grok session. Flagship when they asked for Fable. stream-json rewritten so the UI still paints thinking, tools, and result events. MIT, local, yours.</p>
-      </article>
+    <section class="block">
+      <h2>Two operating modes</h2>
+      <div class="grid-2">
+        <article class="card">
+          <h3>API mask</h3>
+          <p>Used for <code>--output-format stream-json --print</code> (and MCP-config launches). The real Claude Code binary runs. A localhost proxy on port 8317 rewrites Claude model ids and forwards Anthropic <code>/v1/messages</code> to <code>https://api.x.ai</code>. Session files, resume, and tools stay Claude’s.</p>
+        </article>
+        <article class="card">
+          <h3>Harness mask</h3>
+          <p>Used for ordinary <code>claude -p</code> and interactive PATH calls. Arguments are translated and <code>exec</code>’d as <code>grok</code>. Auth commands (<code>claude auth login</code>) open Grok login.</p>
+        </article>
+      </div>
     </section>
 
     <section class="block" id="map">
       <h2>Model map</h2>
       <table class="map">
-        <thead><tr><th>They asked for</th><th>They get</th></tr></thead>
+        <thead><tr><th>Requested</th><th>Routed to</th></tr></thead>
         <tbody>
-          <tr><td>fable, best, mythos, claude-fable-5*</td><td>grok-4.7</td></tr>
-          <tr><td>opus, sonnet, haiku, everything else</td><td>grok-4.6</td></tr>
+          <tr><td>fable, best, mythos, <code>claude-fable-5*</code></td><td>grok-4.7</td></tr>
+          <tr><td>opus, sonnet, haiku, and other Claude ids</td><td>grok-4.6</td></tr>
         </tbody>
       </table>
     </section>
@@ -162,7 +153,7 @@
   <footer class="site">
     <div class="legal">
       <p>MIT © 2026 Eris Margeta · <a href="mailto:eris.margeta@gmail.com">eris.margeta@gmail.com</a></p>
-      <p><a href="./privacy/">Privacy</a> · <a href="https://github.com/Eris-Margeta/claude-masked">GitHub</a></p>
+      <p><a href="./privacy/">Privacy</a> · <a href="./install/">Install</a> · <a href="https://github.com/Eris-Margeta/claude-masked">GitHub</a></p>
     </div>
     <div class="studio">
       <img src="./assets/tejl-logo.svg" width="68" height="24" alt="TEJL">

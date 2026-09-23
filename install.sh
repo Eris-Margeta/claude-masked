@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Install claude-masked over every `claude` Yume might spawn.
-# Yume prefers /opt/homebrew/bin/claude (absolute path) for `auth login`.
+# Install claude-masked as `claude` on PATH (and Homebrew, if present).
 
 set -euo pipefail
 
@@ -18,7 +17,7 @@ if [[ ! -f "$SHIM_SRC" ]]; then
   exit 1
 fi
 
-chmod +x "$ROOT/claude_masked.py" "$SHIM_SRC" "$ROOT/uninstall.sh" "$ROOT/auth.py" 2>/dev/null || true
+chmod +x "$ROOT/claude_masked.py" "$ROOT/api_proxy.py" "$SHIM_SRC" "$ROOT/uninstall.sh" "$ROOT/auth.py" 2>/dev/null || true
 
 install_over() {
   local dest="$1"

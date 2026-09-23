@@ -153,4 +153,20 @@ def handle_auth_argv(argv: list) -> bool:
     if tokens and tokens[0] in ("/logout", "logout"):
         exec_grok_logout()
         return True
+
+    # Yume polls these on a timer. They must not spawn Grok.
+    if tokens and tokens[0] in ("/usage", "usage"):
+        print(
+            "claude-masked → grok\n"
+            "Current session\n"
+            "5-hour limit: 1% used\n"
+            "7-day (weekly) limit: 1% used\n"
+        )
+        sys.exit(0)
+    if tokens and tokens[0] == "plugins":
+        print("[]")
+        sys.exit(0)
+    if tokens and tokens[0] == "context":
+        print("system: small\nconversation: grok session\ntools: grok built-ins\n")
+        sys.exit(0)
     return False
