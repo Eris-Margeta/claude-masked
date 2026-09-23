@@ -1,5 +1,5 @@
 {
-  "id": "https://eris-margeta.github.io/claude-masked/",
+  "id": "https://claude-masked.vercel.app/",
   "name": "claude-masked",
   "short_name": "masked",
   "description": "Claude Code CLI surface. Grok 4.7 process.",

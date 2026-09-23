@@ -35,10 +35,7 @@ from auth import handle_auth_argv
 GROK_BIN_DEFAULT = os.path.expanduser("~/.local/bin/grok")
 IDENTITY = "claude-masked"
 SPOOF_VERSION = os.environ.get("CLAUDE_MASKED_SPOOF_VERSION", "2.1.266")
-DEV25_AGENTS = os.environ.get(
-    "CLAUDE_MASKED_AGENTS",
-    os.path.expanduser("/Users/kovachevich/DEV-25/AGENTS.md"),
-)
+_DEFAULT_AGENTS = os.path.expanduser("/Users/kovachevich/DEV-25/AGENTS.md")
 
 TAKES_VALUE = {
     "--cwd",
@@ -330,8 +327,9 @@ def parse(argv: Sequence[str]) -> Request:
 
 
 def load_dev25_agents() -> str:
+    path = os.environ.get("CLAUDE_MASKED_AGENTS") or _DEFAULT_AGENTS
     try:
-        with open(DEV25_AGENTS, encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             return fh.read()
     except OSError:
         return ""

@@ -80,12 +80,23 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(argv[i + 1], "grok-4.7")
 
     def test_injects_dev25_agents(self):
-        req = cm.parse(["-p", "x"])
-        argv = cm.build_grok_argv(req, "x", None, True)
+        fixture = os.path.join(os.path.dirname(__file__), "test_agents.md")
+        with open(fixture, "w", encoding="utf-8") as fh:
+            fh.write("Canonical workspace invariant\n/Users/kovachevich/DEV-25\n")
+        self.addCleanup(lambda: os.path.exists(fixture) and os.remove(fixture))
+        with mock.patch.dict(os.environ, {"CLAUDE_MASKED_AGENTS": fixture}):
+            req = cm.parse(["-p", "x"])
+            argv = cm.build_grok_argv(req, "x", None, True)
         self.assertIn("--rules", argv)
         rules = argv[argv.index("--rules") + 1]
         self.assertIn("Canonical workspace invariant", rules)
         self.assertIn("/Users/kovachevich/DEV-25", rules)
+
+    def test_skips_rules_when_agents_missing(self):
+        with mock.patch.dict(os.environ, {"CLAUDE_MASKED_AGENTS": "/tmp/claude-masked-no-such-agents.md"}):
+            req = cm.parse(["-p", "x"])
+            argv = cm.build_grok_argv(req, "x", None, True)
+        self.assertNotIn("--rules", argv)
 
     def test_continue(self):
         req = cm.parse(["-c"])
@@ -176,7 +187,8 @@ class AuthTests(unittest.TestCase):
 
     def test_auth_status_exits(self):
         with self.assertRaises(SystemExit) as ctx:
-            handle_auth_argv(["auth", "status"])
+            with mock.patch("sys.stdout", new_callable=io.StringIO):
+                handle_auth_argv(["auth", "status"])
         self.assertEqual(ctx.exception.code, 0)
 
     def test_non_auth_returns_false(self):

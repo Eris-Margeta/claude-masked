@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://eris-margeta.github.io/claude-masked/</loc></url>
-  <url><loc>https://eris-margeta.github.io/claude-masked/install/</loc></url>
-  <url><loc>https://eris-margeta.github.io/claude-masked/privacy/</loc></url>
+  <url><loc>https://claude-masked.vercel.app/</loc></url>
+  <url><loc>https://claude-masked.vercel.app/install/</loc></url>
+  <url><loc>https://claude-masked.vercel.app/privacy/</loc></url>
 </urlset>
